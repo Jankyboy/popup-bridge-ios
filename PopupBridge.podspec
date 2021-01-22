@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = 'PopupBridge'
-  s.version          = '1.1.0'
+  s.version          = '1.2.0'
   s.summary          = 'Use PopupBridge to enable your web view to open pages in a Safari View Controller'
   s.description      = <<-DESC
 PopupBridge is an iOS library that allows WKWebViews to open popup windows in an SFSafariViewController
@@ -20,8 +20,10 @@ Use cases for PopupBridge:
 
   s.ios.deployment_target = '9.0'
 
-  s.source_files = 'PopupBridge/Classes/**/*.{h,m}'
-  s.public_header_files = 'PopupBridge/Classes/**/*.h'
+  s.source_files = 'Sources/PopupBridge/**/*.{h,m}'
+  s.public_header_files = 'Sources/PopupBridge/Public/**/*.h'
 
-  s.frameworks = 'UIKit', 'SafariServices'
+  # https://github.com/CocoaPods/CocoaPods/issues/10065#issuecomment-694266259
+  s.pod_target_xcconfig = { 'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'arm64' }
+  s.user_target_xcconfig = { 'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'arm64' }
 end

@@ -5,21 +5,21 @@ require 'bundler'
 Bundler.require
 HighLine.color_scheme = HighLine::SampleColorScheme.new
 
-task :default => %w[demo:build spec]
+task :default => %w[spec:all]
 
 desc "Run tests"
 task :spec => %w[spec:all]
 
 desc "Run internal release steps"
-task :release => %w[release:assumptions demo:build release:check_working_directory release:bump_version release:lint_podspec release:tag]
+task :release => %w[release:assumptions demo_app:build_demo spm:build_demo release:check_working_directory release:bump_version release:lint_podspec release:tag]
 
 desc "Publish code and pod to public github.com"
 task :publish => %w[publish:push publish:push_pod]
 
 SEMVER = /\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?/
 PODSPEC = "PopupBridge.podspec"
-DEMO_PLIST = "Example/PopupBridge-Info.plist"
-POPUPBRIDGE_FRAMEWORKS_PLIST = "PopupBridge/PopupBridge-Framework-Info.plist"
+DEMO_PLIST = "Demo/Demo/Info.plist"
+POPUPBRIDGE_FRAMEWORKS_PLIST = "Sources/PopupBridge/PopupBridge-Framework-Info.plist"
 PUBLIC_REMOTE_NAME = "origin"
 
 class << self
@@ -54,7 +54,7 @@ class << self
   end
 
   def xcodebuild(scheme, command, configuration)
-    return "set -o pipefail && xcodebuild -workspace 'PopupBridge.xcworkspace' -sdk 'iphonesimulator' -configuration '#{configuration}' -scheme '#{scheme}' -destination 'name=iPhone 11,platform=iOS Simulator,OS=13.3' #{command} | xcpretty -c -r junit"
+    return "set -o pipefail && xcodebuild -workspace 'PopupBridge.xcworkspace' -sdk 'iphonesimulator' -configuration '#{configuration}' -scheme '#{scheme}' -destination 'name=iPhone 12,platform=iOS Simulator,OS=14.3' #{command} | xcpretty -c -r junit"
   end
 
 end
@@ -66,22 +66,44 @@ namespace :spec do
 
   desc 'Run unit tests'
   task :unit do
-    run_test_scheme! 'PopupBridge_Tests'
+    run_test_scheme! 'UnitTests'
   end
 
   desc 'Run UI tests'
   task :ui do
-    run_test_scheme! 'PopupBridge_ExampleUITests'
+    run_test_scheme! 'UITests'
   end
 
   desc 'Run all spec schemes'
   task :all => %w[spec:unit spec:ui]
 end
 
-namespace :demo do
+namespace :demo_app do
   desc 'Verify that the demo app builds successfully'
-  task :build do
-    run! xcodebuild('PopupBridge-Example', 'build', 'Release')
+  task :build_demo do
+    run! xcodebuild('Demo', 'build', 'Release')
+  end
+end
+
+namespace :spm do
+  def update_xcodeproj
+    project_file = "SampleApps/SPMTest/SPMTest.xcodeproj/project.pbxproj"
+    proj = File.read(project_file)
+    proj.gsub!(/(repositoryURL = )(.*);/, "\\1\"file://#{Dir.pwd}/\";")
+    proj.gsub!(/(branch = )(.*);/, "\\1\"#{current_branch}\";")
+    File.open(project_file, "w") { |f| f.puts proj }
+  end
+
+  task :build_demo do
+    update_xcodeproj
+
+    # Build SPMTest app
+    run! "cd SampleApps/SPMTest && swift package resolve"
+    run! "xcodebuild -project 'SampleApps/SPMTest/SPMTest.xcodeproj' -scheme 'SPMTest' clean build"
+
+    # Cleanup
+    run! 'rm -rf ~/Library/Developers/Xcode/DerivedData'
+    run! 'git checkout SampleApps/SPMTest'
   end
 end
 

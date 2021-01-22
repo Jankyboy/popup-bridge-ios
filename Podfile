@@ -5,6 +5,6 @@ project 'PopupBridge.xcodeproj'
 
 use_frameworks!
 
-target 'PopupBridge_Tests' do
-  pod 'OCMock'
+target 'UnitTests' do
+  pod 'OCMock', :inhibit_warnings => true
 end
